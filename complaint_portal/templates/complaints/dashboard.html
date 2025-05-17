@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2 class="mb-4">Your Dashboard</h2>
+        <div class="row">
+            <!-- Total card -->
+            <div class="col">
+                <div class="card stats-card mb-3" style="cursor: pointer;" onclick="filterComplaints('all')">
+                    <div class="card-body">
+                        <i class="fas fa-clipboard-list text-primary"></i>
+                        <h5 class="card-title">Total</h5>
+                        <h2>{{ complaints.count }}</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pending card -->
+            <div class="col">
+                <div class="card stats-card mb-3" style="cursor: pointer;" onclick="filterComplaints('pending')">
+                    <div class="card-body">
+                        <i class="fas fa-clock text-warning"></i>
+                        <h5 class="card-title">Pending</h5>
+                        <h2>{{ pending_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- In Progress card -->
+            <div class="col">
+                <div class="card stats-card mb-3" style="cursor: pointer;" onclick="filterComplaints('in_progress')">
+                    <div class="card-body">
+                        <i class="fas fa-spinner text-info"></i>
+                        <h5 class="card-title">In Progress</h5>
+                        <h2>{{ inprogress_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resolved card -->
+            <div class="col">
+                <div class="card stats-card mb-3" style="cursor: pointer;" onclick="filterComplaints('resolved')">
+                    <div class="card-body">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <h5 class="card-title">Resolved</h5>
+                        <h2>{{ resolved_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Closed card -->
+            <div class="col">
+                <div class="card stats-card mb-3" style="cursor: pointer;" onclick="filterComplaints('closed')">
+                    <div class="card-body">
+                        <i class="fas fa-archive text-secondary"></i>
+                        <h5 class="card-title">Closed</h5>
+                        <h2>{{ closed_count }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <span id="table-title">Your Complaints</span>
+                    <span class="badge bg-primary ms-2" id="active-filter" style="display: none;">All</span>
+                </h5>
+                <div>
+                    <button onclick="filterComplaints('all')" class="btn btn-outline-secondary btn-sm me-2" id="clear-filter" style="display: none;">
+                        <i class="fas fa-times me-1"></i>Clear Filter
+                    </button>
+                    <a href="{% url 'add_complaint' %}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-1"></i>New Complaint
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if complaints %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Date Submitted</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="complaints-table">
+                                {% for complaint in complaints %}
+                                    <tr class="complaint-row" data-status="{{ complaint.status }}">
+                                        <td>{{ complaint.title }}</td>
+                                        <td>{{ complaint.date_submitted|date:"F d, Y" }}</td>
+                                        <td>
+                                            {% if complaint.status == 'pending' %}
+                                                <span class="status-badge status-pending">Pending</span>
+                                            {% elif complaint.status == 'in_progress' %}
+                                                <span class="status-badge status-in-progress">In Progress</span>
+                                            {% elif complaint.status == 'resolved' %}
+                                                <span class="status-badge status-resolved">Resolved</span>
+                                            {% else %}
+                                                <span class="status-badge status-closed">Closed</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'view_complaint' complaint.id %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="no-filtered-results" class="text-center py-4" style="display: none;">
+                        <i class="fas fa-filter fa-3x mb-3 text-muted"></i>
+                        <h5>No matching complaints</h5>
+                        <p>There are no complaints with the selected status.</p>
+                        <button onclick="filterComplaints('all')" class="btn btn-outline-primary">
+                            <i class="fas fa-list me-1"></i>Show All Complaints
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clipboard-list fa-3x mb-3 text-muted"></i>
+                        <h5>No complaints yet</h5>
+                        <p>You haven't submitted any complaints yet.</p>
+                        <a href="{% url 'add_complaint' %}" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-1"></i>Add Your First Complaint
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filterComplaints(status) {
+        const rows = document.querySelectorAll('.complaint-row');
+        const noResults = document.getElementById('no-filtered-results');
+        const activeFilter = document.getElementById('active-filter');
+        const clearFilter = document.getElementById('clear-filter');
+        const tableTitle = document.getElementById('table-title');
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            if (status === 'all' || row.getAttribute('data-status') === status) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update filter badge
+        if (status === 'all') {
+            activeFilter.style.display = 'none';
+            clearFilter.style.display = 'none';
+            tableTitle.textContent = 'Your Complaints';
+        } else {
+            activeFilter.style.display = 'inline';
+            clearFilter.style.display = 'inline';
+            
+            // Set appropriate filter text
+            if (status === 'pending') {
+                activeFilter.textContent = 'Pending';
+                activeFilter.className = 'badge bg-warning ms-2';
+                tableTitle.textContent = 'Pending Complaints';
+            } else if (status === 'in_progress') {
+                activeFilter.textContent = 'In Progress';
+                activeFilter.className = 'badge bg-info ms-2';
+                tableTitle.textContent = 'In Progress Complaints';
+            } else if (status === 'resolved') {
+                activeFilter.textContent = 'Resolved';
+                activeFilter.className = 'badge bg-success ms-2';
+                tableTitle.textContent = 'Resolved Complaints';
+            } else if (status === 'closed') {
+                activeFilter.textContent = 'Closed';
+                activeFilter.className = 'badge bg-secondary ms-2';
+                tableTitle.textContent = 'Closed Complaints';
+            }
+        }
+        
+        // Show/hide no results message
+        if (visibleCount === 0 && status !== 'all') {
+            noResults.style.display = 'block';
+        } else {
+            noResults.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}
